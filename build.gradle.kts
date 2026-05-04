@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.joshestein"
-version = "1.0.13"
+version = "1.0.13.1"
 
 repositories {
     mavenCentral()

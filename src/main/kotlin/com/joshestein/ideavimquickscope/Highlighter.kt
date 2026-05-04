@@ -4,6 +4,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.markup.*
 import com.maddyhome.idea.vim.VimPlugin
+import com.maddyhome.idea.vim.vimscript.model.datatypes.VimInt
+import com.maddyhome.idea.vim.vimscript.model.datatypes.VimString
 import java.awt.Color
 import java.awt.Font
 
@@ -59,25 +61,36 @@ class Highlighter(var editor: Editor) {
     }
 
     private fun getPrimaryColor(): Color {
-        val primaryColor = try {
-            Color.decode(VimPlugin.getVariableService().getGlobalVariableValue(PRIMARY_COLOR_VARIABLE).toString())
-        } catch (e: Exception) {
+        val primaryColor =
+            getConfiguredColor(PRIMARY_COLOR_VARIABLE) ?:
             editor.colorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR)?.foregroundColor
                 ?: EditorColors.REFERENCE_HYPERLINK_COLOR.defaultAttributes.foregroundColor
-        }
         return primaryColor
     }
 
     private fun getSecondaryColor(): Color {
-        val secondaryColor = try {
-            Color.decode(VimPlugin.getVariableService().getGlobalVariableValue(SECONDARY_COLOR_VARIABLE).toString())
-        } catch (e: Exception) {
+        val secondaryColor = getConfiguredColor(SECONDARY_COLOR_VARIABLE)
+            ?: run {
             (editor.colorsScheme.getAttributes(EditorColors.REFERENCE_HYPERLINK_COLOR)?.foregroundColor
                 ?: EditorColors.REFERENCE_HYPERLINK_COLOR.defaultAttributes.foregroundColor).let { color ->
                 color.brighter().takeIf { it != color } ?: color.darker()
             }
         }
         return secondaryColor
+    }
+
+    private fun getConfiguredColor(variableName: String): Color? {
+        val configuredColor = when (val value = VimPlugin.getVariableService().getGlobalVariableValue(variableName)) {
+            is VimString -> value.value
+            is VimInt -> value.value.toString()
+            else -> value?.toString()
+        } ?: return null
+
+        return try {
+            Color.decode(configuredColor)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun removeHighlights() {
